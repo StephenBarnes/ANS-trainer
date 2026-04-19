@@ -6,15 +6,36 @@ const toleranceInput = document.getElementById("tolerance-input");
 const feedbackContent = document.getElementById("feedback-content");
 const guessForm = document.getElementById("guess-form");
 const guessInput = document.getElementById("guess-input");
+const stage = document.getElementById("stimulus-stage");
 const canvas = document.getElementById("stimulus-canvas");
 const ctx = canvas.getContext("2d");
+const resizeObserver = new ResizeObserver(() => {
+  const resized = resizeCanvas();
+
+  if (!resized) {
+    return;
+  }
+
+  if (state.active && state.currentStimulus) {
+    drawStimulus();
+  } else {
+    clearCanvas("#f2efe8");
+  }
+});
 
 const state = {
   active: false,
   tolerance: 0.2,
   currentStimulus: null,
   lastResult: null,
+  viewport: {
+    width: 0,
+    height: 0,
+    ratio: 1,
+  },
 };
+
+resizeObserver.observe(stage);
 
 const symbolDrawers = {
   circle(context, x, y, size) {
@@ -94,9 +115,7 @@ function startSession() {
   trainerScreen.setAttribute("aria-hidden", "false");
 
   renderFeedback();
-  prepareNextStimulus();
-  guessInput.value = "";
-  guessInput.focus();
+  scheduleInitialStimulus();
 }
 
 function stopSession() {
@@ -151,21 +170,40 @@ function handleGuessSubmit(event) {
 }
 
 function prepareNextStimulus() {
-  resizeCanvas();
-  state.currentStimulus = createStimulus(canvas.width, canvas.height);
+  const resized = resizeCanvas();
+
+  if (!resized) {
+    return false;
+  }
+
+  state.currentStimulus = createStimulus(state.viewport.width, state.viewport.height);
   drawStimulus();
+  scheduleRedrawBurst();
+  return true;
 }
 
 function resizeCanvas() {
-  const ratio = window.devicePixelRatio || 1;
-  const width = Math.floor(window.innerWidth);
-  const height = Math.floor(window.innerHeight);
+  const rect = stage.getBoundingClientRect();
+  const width = Math.floor(rect.width);
+  const height = Math.floor(rect.height);
 
-  canvas.width = Math.floor(width * ratio);
-  canvas.height = Math.floor(height * ratio);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  if (width <= 0 || height <= 0) {
+    state.viewport = { width: 0, height: 0, ratio: window.devicePixelRatio || 1 };
+    return false;
+  }
+
+  const ratio = window.devicePixelRatio || 1;
+  const nextBackingWidth = Math.floor(width * ratio);
+  const nextBackingHeight = Math.floor(height * ratio);
+
+  if (canvas.width !== nextBackingWidth || canvas.height !== nextBackingHeight) {
+    canvas.width = nextBackingWidth;
+    canvas.height = nextBackingHeight;
+  }
+
+  state.viewport = { width, height, ratio };
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  return true;
 }
 
 function createStimulus(width, height) {
@@ -207,11 +245,58 @@ function drawStimulus() {
 }
 
 function clearCanvas(color) {
+  if (state.viewport.width <= 0 || state.viewport.height <= 0) {
+    return;
+  }
+
   ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = color;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, state.viewport.width, state.viewport.height);
   ctx.restore();
+}
+
+function scheduleInitialStimulus(attempt = 0) {
+  window.requestAnimationFrame(() => {
+    if (!state.active) {
+      return;
+    }
+
+    const ready = prepareNextStimulus();
+
+    if (!ready && attempt < 8) {
+      scheduleInitialStimulus(attempt + 1);
+      return;
+    }
+
+    guessInput.value = "";
+    guessInput.focus();
+  });
+}
+
+function scheduleRedrawBurst() {
+  let remainingFrames = 3;
+
+  function redrawOnFrame() {
+    if (!state.active || !state.currentStimulus) {
+      return;
+    }
+
+    drawStimulus();
+    remainingFrames -= 1;
+
+    if (remainingFrames > 0) {
+      window.requestAnimationFrame(redrawOnFrame);
+    }
+  }
+
+  window.requestAnimationFrame(redrawOnFrame);
+  window.setTimeout(() => {
+    if (!state.active || !state.currentStimulus) {
+      return;
+    }
+
+    drawStimulus();
+  }, 120);
 }
 
 function renderFeedback() {

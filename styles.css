@@ -163,9 +163,15 @@ kbd {
   display: none;
 }
 
-#stimulus-canvas {
+.stimulus-stage {
   position: absolute;
-  inset: 0;
+  inset: clamp(88px, 10vh, 118px) 24px clamp(124px, 18vh, 164px);
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+#stimulus-canvas {
+  display: block;
   width: 100%;
   height: 100%;
 }
@@ -189,7 +195,8 @@ kbd {
 }
 
 .status-panel,
-.guess-form {
+.guess-form,
+.close-button {
   pointer-events: auto;
 }
 
@@ -302,6 +309,11 @@ kbd {
 
   .hud {
     padding: 14px;
+  }
+
+  .stimulus-stage {
+    inset: 78px 12px 138px;
+    border-radius: 22px;
   }
 
   .status-panel {
