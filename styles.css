@@ -1,0 +1,320 @@
+:root {
+  color-scheme: light;
+  --bg: #f2efe8;
+  --bg-accent: #d6e5d8;
+  --panel: rgba(255, 252, 246, 0.84);
+  --panel-strong: rgba(255, 252, 246, 0.95);
+  --text: #1d1a16;
+  --muted: #62584d;
+  --line: rgba(29, 26, 22, 0.12);
+  --success: #0f7b52;
+  --danger: #a43e2f;
+  --shadow: 0 30px 80px rgba(43, 32, 16, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(231, 127, 74, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(84, 124, 186, 0.18), transparent 30%),
+    linear-gradient(135deg, var(--bg), var(--bg-accent));
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.intro-card {
+  width: min(760px, 100%);
+  padding: 40px;
+  border-radius: 32px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+h1 {
+  margin: 0;
+  max-width: 12ch;
+  font-family: "Fraunces", serif;
+  font-size: clamp(2.8rem, 7vw, 4.8rem);
+  line-height: 0.95;
+}
+
+.lede {
+  margin: 22px 0 0;
+  max-width: 56ch;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.settings {
+  margin-top: 30px;
+}
+
+.field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.input-wrap input {
+  width: 96px;
+  border: 0;
+  background: transparent;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  outline: none;
+}
+
+.suffix {
+  color: var(--muted);
+}
+
+.meta {
+  margin-top: 26px;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.meta p {
+  margin: 0;
+}
+
+.play-button,
+.guess-row button,
+.close-button {
+  border: 0;
+  cursor: pointer;
+}
+
+.play-button {
+  margin-top: 34px;
+  padding: 16px 26px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1f6c5b, #2d3f87);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  box-shadow: 0 18px 40px rgba(27, 65, 96, 0.24);
+}
+
+kbd {
+  padding: 2px 7px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 0.92em;
+}
+
+.trainer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.trainer.hidden {
+  display: none;
+}
+
+#stimulus-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.hud-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.status-panel,
+.guess-form {
+  pointer-events: auto;
+}
+
+.status-panel {
+  max-width: min(680px, calc(100vw - 120px));
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+.status-label {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  font-weight: 500;
+}
+
+.feedback.empty {
+  color: var(--muted);
+}
+
+.feedback .pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.feedback .result-success {
+  color: var(--success);
+}
+
+.feedback .result-fail {
+  color: var(--danger);
+}
+
+.close-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: rgba(255, 252, 246, 0.88);
+  color: var(--text);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12);
+  font-weight: 700;
+}
+
+.guess-form {
+  align-self: center;
+  width: min(520px, 100%);
+  padding: 18px;
+  border-radius: 26px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.14);
+}
+
+.guess-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.guess-row {
+  display: flex;
+  gap: 12px;
+}
+
+.guess-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  font-size: 1.05rem;
+  outline: none;
+}
+
+.guess-row button {
+  padding: 16px 22px;
+  border-radius: 18px;
+  background: #1d1a16;
+  color: white;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 18px;
+  }
+
+  .intro-card {
+    padding: 28px 22px;
+    border-radius: 24px;
+  }
+
+  .hud {
+    padding: 14px;
+  }
+
+  .status-panel {
+    max-width: calc(100vw - 84px);
+    padding: 14px;
+  }
+
+  .guess-form {
+    width: 100%;
+    padding: 14px;
+  }
+
+  .guess-row {
+    flex-direction: column;
+  }
+}

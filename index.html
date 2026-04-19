@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ANS Trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="intro-card" id="intro-screen">
+        <p class="eyebrow">Approximate Number System</p>
+        <h1>Train rapid quantity estimation without counting.</h1>
+        <p class="lede">
+          Each round shows a field of symbols for a quick magnitude judgment. Type your estimate,
+          press <kbd>Enter</kbd>, and the next challenge appears immediately with feedback on the
+          previous round.
+        </p>
+
+        <div class="settings">
+          <label class="field">
+            <span>Success tolerance</span>
+            <div class="input-wrap">
+              <input
+                id="tolerance-input"
+                type="number"
+                min="1"
+                max="100"
+                step="1"
+                value="20"
+                inputmode="numeric"
+              />
+              <span class="suffix">%</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="meta">
+          <p>Counts vary from roughly 20 to 2000.</p>
+          <p>Layouts, symbol types, colors, and backgrounds change each round.</p>
+          <p>Press <kbd>Esc</kbd> or the close button to leave the trainer.</p>
+        </div>
+
+        <button class="play-button" id="play-button" type="button">Play</button>
+      </section>
+    </main>
+
+    <section class="trainer hidden" id="trainer-screen" aria-hidden="true">
+      <canvas id="stimulus-canvas"></canvas>
+
+      <div class="hud">
+        <div class="hud-top">
+          <div class="status-panel">
+            <p class="status-label">Last round</p>
+            <div id="feedback-content" class="feedback empty">
+              <span>Start a round to begin.</span>
+            </div>
+          </div>
+
+          <button class="close-button" id="close-button" type="button" aria-label="Exit trainer">
+            X
+          </button>
+        </div>
+
+        <form class="guess-form" id="guess-form" autocomplete="off">
+          <label for="guess-input">Your estimate</label>
+          <div class="guess-row">
+            <input
+              id="guess-input"
+              name="guess"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              placeholder="Enter a number"
+              required
+            />
+            <button type="submit">Submit</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
