@@ -428,8 +428,8 @@ function createArrangement(type, count, width, height) {
 function createPhyllotaxisArrangement(count, width, height, padding) {
   const centerX = width * 0.5;
   const centerY = height * 0.5;
-  const radiusLimit = Math.min(width, height) * 0.5 - padding;
-  const size = Math.max(3, Math.min(26, radiusLimit / Math.sqrt(count) * 1.55));
+  const radiusLimit = Math.max(24, Math.min(width, height) * 0.5 - padding);
+  const size = Math.max(3, Math.min(24, radiusLimit / Math.sqrt(count) * 1.3));
   const spread = Math.max(size * 0.78, (radiusLimit - size) / Math.sqrt(count));
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
   const points = [];
@@ -439,15 +439,16 @@ function createPhyllotaxisArrangement(count, width, height, padding) {
     const theta = index * goldenAngle + randomBetween(-0.06, 0.06);
 
     points.push({
-      x: centerX + Math.cos(theta) * r,
-      y: centerY + Math.sin(theta) * r,
-      size,
-      rotation: theta,
-      index,
-    });
+        x: centerX + Math.cos(theta) * r,
+        y: centerY + Math.sin(theta) * r,
+        size,
+        rotation: theta,
+        index: 0,
+      });
   }
 
-  return points;
+  shuffle(points);
+  return points.map((point, index) => ({ ...point, index }));
 }
 
 function randomLogInt(min, max) {
