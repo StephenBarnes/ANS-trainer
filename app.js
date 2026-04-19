@@ -3,6 +3,7 @@ const trainerScreen = document.getElementById("trainer-screen");
 const playButton = document.getElementById("play-button");
 const closeButton = document.getElementById("close-button");
 const toleranceInput = document.getElementById("tolerance-input");
+const movementToggle = document.getElementById("movement-toggle");
 const feedbackContent = document.getElementById("feedback-content");
 const guessForm = document.getElementById("guess-form");
 const guessInput = document.getElementById("guess-input");
@@ -26,8 +27,11 @@ const resizeObserver = new ResizeObserver(() => {
 const state = {
   active: false,
   tolerance: 0.2,
+  movementEnabled: false,
   currentStimulus: null,
   lastResult: null,
+  animationFrame: null,
+  lastAnimationTime: null,
   viewport: {
     width: 0,
     height: 0,
@@ -107,6 +111,7 @@ function startSession() {
 
   toleranceInput.value = String(tolerancePercent);
   state.tolerance = tolerancePercent / 100;
+  state.movementEnabled = movementToggle.checked;
   state.active = true;
   state.lastResult = null;
 
@@ -119,6 +124,7 @@ function startSession() {
 }
 
 function stopSession() {
+  stopAnimationLoop();
   state.active = false;
   state.currentStimulus = null;
 
@@ -176,8 +182,10 @@ function prepareNextStimulus() {
     return false;
   }
 
+  stopAnimationLoop();
   state.currentStimulus = createStimulus(state.viewport.width, state.viewport.height);
   drawStimulus();
+  startAnimationLoop();
   scheduleRedrawBurst();
   return true;
 }
@@ -213,6 +221,8 @@ function createStimulus(width, height) {
   const symbol = sample(Object.keys(symbolDrawers));
   const palette = createPalette(background);
   const positions = createArrangement(arrangement, count, width, height);
+  const movementMode = selectMovementMode(count);
+  const particles = createParticles(positions, movementMode, width, height);
 
   return {
     count,
@@ -220,7 +230,8 @@ function createStimulus(width, height) {
     arrangement,
     symbol,
     palette,
-    positions,
+    movementMode,
+    particles: assignParticleColors(particles, palette),
   };
 }
 
@@ -229,16 +240,15 @@ function drawStimulus() {
     return;
   }
 
-  const { background, palette, positions, symbol } = state.currentStimulus;
+  const { background, particles, symbol } = state.currentStimulus;
 
   clearCanvas(background);
 
-  for (const point of positions) {
-    const color = getPointColor(palette, point.index, positions.length);
+  for (const point of particles) {
     const rotation = point.rotation ?? Math.random() * Math.PI;
 
-    ctx.fillStyle = color;
-    ctx.strokeStyle = color;
+    ctx.fillStyle = point.color;
+    ctx.strokeStyle = point.color;
 
     symbolDrawers[symbol](ctx, point.x, point.y, point.size, rotation);
   }
@@ -297,6 +307,43 @@ function scheduleRedrawBurst() {
 
     drawStimulus();
   }, 120);
+}
+
+function startAnimationLoop() {
+  if (!state.active || !state.currentStimulus || state.currentStimulus.movementMode === "stationary") {
+    return;
+  }
+
+  stopAnimationLoop();
+  state.lastAnimationTime = null;
+
+  function animate(timestamp) {
+    if (!state.active || !state.currentStimulus || state.currentStimulus.movementMode === "stationary") {
+      stopAnimationLoop();
+      return;
+    }
+
+    if (state.lastAnimationTime === null) {
+      state.lastAnimationTime = timestamp;
+    }
+
+    const dt = Math.min(0.033, (timestamp - state.lastAnimationTime) / 1000 || 0.016);
+    state.lastAnimationTime = timestamp;
+    updateStimulusMotion(state.currentStimulus, dt);
+    drawStimulus();
+    state.animationFrame = window.requestAnimationFrame(animate);
+  }
+
+  state.animationFrame = window.requestAnimationFrame(animate);
+}
+
+function stopAnimationLoop() {
+  if (state.animationFrame !== null) {
+    window.cancelAnimationFrame(state.animationFrame);
+  }
+
+  state.animationFrame = null;
+  state.lastAnimationTime = null;
 }
 
 function renderFeedback() {
@@ -449,6 +496,203 @@ function createPhyllotaxisArrangement(count, width, height, padding) {
 
   shuffle(points);
   return points.map((point, index) => ({ ...point, index }));
+}
+
+function selectMovementMode(count) {
+  if (!state.movementEnabled) {
+    return "stationary";
+  }
+
+  const modes = ["stationary", "randomWalk", "bounce", "bounceTurn"];
+
+  if (count <= 260) {
+    modes.push("boids");
+  }
+
+  return sample(modes);
+}
+
+function createParticles(positions, movementMode, width, height) {
+  return positions.map((point) => {
+    const speed = movementMode === "boids" ? randomBetween(36, 84) : randomBetween(28, 108);
+    const angle = Math.random() * Math.PI * 2;
+
+    return {
+      ...point,
+      homeX: point.x,
+      homeY: point.y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      turnTimer: randomBetween(0.4, 1.8),
+      maxSpeed:
+        movementMode === "randomWalk"
+          ? randomBetween(52, 116)
+          : movementMode === "boids"
+            ? randomBetween(56, 104)
+            : randomBetween(36, 136),
+    };
+  });
+}
+
+function assignParticleColors(particles, palette) {
+  return particles.map((particle, index) => ({
+    ...particle,
+    color: getPointColor(palette, index, particles.length),
+  }));
+}
+
+function updateStimulusMotion(stimulus, dt) {
+  const { movementMode, particles } = stimulus;
+
+  if (movementMode === "randomWalk") {
+    for (const particle of particles) {
+      const turn = randomBetween(-2.6, 2.6);
+      const cos = Math.cos(turn * dt);
+      const sin = Math.sin(turn * dt);
+      const nextVx = particle.vx * cos - particle.vy * sin;
+      const nextVy = particle.vx * sin + particle.vy * cos;
+
+      particle.vx = nextVx + randomBetween(-40, 40) * dt;
+      particle.vy = nextVy + randomBetween(-40, 40) * dt;
+      limitVelocity(particle);
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      bounceParticle(particle);
+    }
+
+    return;
+  }
+
+  if (movementMode === "bounce" || movementMode === "bounceTurn") {
+    for (const particle of particles) {
+      if (movementMode === "bounceTurn") {
+        particle.turnTimer -= dt;
+
+        if (particle.turnTimer <= 0) {
+          const angle = Math.atan2(particle.vy, particle.vx) + randomBetween(-1.7, 1.7);
+          const speed = Math.max(8, Math.hypot(particle.vx, particle.vy));
+
+          particle.vx = Math.cos(angle) * speed;
+          particle.vy = Math.sin(angle) * speed;
+          particle.turnTimer = randomBetween(0.5, 2.2);
+        }
+      }
+
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+      bounceParticle(particle);
+    }
+
+    return;
+  }
+
+  if (movementMode === "boids") {
+    updateBoids(stimulus, dt);
+  }
+}
+
+function updateBoids(stimulus, dt) {
+  const { particles } = stimulus;
+  const sampleSize = Math.min(8, Math.max(4, Math.floor(Math.sqrt(particles.length) / 2)));
+  const perception = Math.max(48, Math.min(state.viewport.width, state.viewport.height) * 0.12);
+  const separationDistance = perception * 0.42;
+
+  for (let index = 0; index < particles.length; index += 1) {
+    const particle = particles[index];
+    let cohesionX = 0;
+    let cohesionY = 0;
+    let alignmentX = 0;
+    let alignmentY = 0;
+    let separationX = 0;
+    let separationY = 0;
+    let neighbors = 0;
+
+    for (let offset = 1; offset <= sampleSize; offset += 1) {
+      const neighbor = particles[(index + offset * 13) % particles.length];
+
+      if (neighbor === particle) {
+        continue;
+      }
+
+      const dx = neighbor.x - particle.x;
+      const dy = neighbor.y - particle.y;
+      const distance = Math.hypot(dx, dy);
+
+      if (distance === 0 || distance > perception) {
+        continue;
+      }
+
+      cohesionX += neighbor.x;
+      cohesionY += neighbor.y;
+      alignmentX += neighbor.vx;
+      alignmentY += neighbor.vy;
+      neighbors += 1;
+
+      if (distance < separationDistance) {
+        separationX -= dx / distance;
+        separationY -= dy / distance;
+      }
+    }
+
+    if (neighbors > 0) {
+      particle.vx += ((cohesionX / neighbors - particle.x) * 0.036 + alignmentX / neighbors * 0.06) * dt;
+      particle.vy += ((cohesionY / neighbors - particle.y) * 0.036 + alignmentY / neighbors * 0.06) * dt;
+      particle.vx += separationX * 44 * dt;
+      particle.vy += separationY * 44 * dt;
+    }
+
+    particle.vx += (particle.homeX - particle.x) * 0.02 * dt;
+    particle.vy += (particle.homeY - particle.y) * 0.02 * dt;
+
+    limitVelocity(particle);
+  }
+
+  for (const particle of particles) {
+    particle.x += particle.vx * dt;
+    particle.y += particle.vy * dt;
+    bounceParticle(particle);
+  }
+}
+
+function limitVelocity(particle) {
+  const speed = Math.hypot(particle.vx, particle.vy);
+
+  if (speed <= particle.maxSpeed) {
+    return;
+  }
+
+  const scale = particle.maxSpeed / speed;
+  particle.vx *= scale;
+  particle.vy *= scale;
+}
+
+function bounceParticle(particle) {
+  const minX = particle.size * 0.7;
+  const maxX = state.viewport.width - particle.size * 0.7;
+  const minY = particle.size * 0.7;
+  const maxY = state.viewport.height - particle.size * 0.7;
+
+  if (particle.x < minX) {
+    particle.x = minX;
+    particle.vx = Math.abs(particle.vx);
+  } else if (particle.x > maxX) {
+    particle.x = maxX;
+    particle.vx = -Math.abs(particle.vx);
+  }
+
+  if (particle.y < minY) {
+    particle.y = minY;
+    particle.vy = Math.abs(particle.vy);
+  } else if (particle.y > maxY) {
+    particle.y = maxY;
+    particle.vy = -Math.abs(particle.vy);
+  }
+
+  if (Math.abs(particle.vx) + Math.abs(particle.vy) < 1) {
+    const angle = Math.random() * Math.PI * 2;
+    particle.vx = Math.cos(angle) * particle.maxSpeed * 0.5;
+    particle.vy = Math.sin(angle) * particle.maxSpeed * 0.5;
+  }
 }
 
 function randomLogInt(min, max) {
